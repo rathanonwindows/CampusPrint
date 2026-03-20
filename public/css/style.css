@@ -316,7 +316,7 @@ main {
 }
 
 .faq-question{
-   font: size 60px;
+   font-size: 60px;
 }
 
 /* QR  */
@@ -1487,5 +1487,54 @@ footer {
     footer {
         font-size: 12px;
         padding: 14px;
+    }
+}
+
+/* ================= FINAL MOBILE DASHBOARD FIX ================= */
+
+@media (max-width: 768px) {
+
+    /* REMOVE fixed sidebar behavior */
+    .layout .sidebar {
+        position: relative !important;
+        top: 0 !important;
+        height: auto !important;
+        width: 100% !important;
+
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+
+        padding: 10px;
+        border-bottom: 1px solid #e8ecf2;
+    }
+
+    /* hide sidebar title */
+    .layout .sidebar h2 {
+        display: none;
+    }
+
+    /* make nav buttons horizontal */
+    .layout .sidebar a {
+        flex: 1;
+        text-align: center;
+        margin: 0 5px;
+        padding: 10px;
+        font-size: 14px;
+    }
+
+    /* VERY IMPORTANT FIX */
+    .layout .main {
+        margin-left: 0 !important;   /* 🚨 FIXES YOUR ISSUE */
+        padding: 20px 15px;
+    }
+
+    /* stack cards nicely */
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .orders-grid {
+        grid-template-columns: 1fr;
     }
 }
