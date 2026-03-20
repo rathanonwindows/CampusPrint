@@ -1,27 +1,36 @@
 const fs = require("fs");
+const path = require("path");
 const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
 
 const app = express();
 
+/* ================= MIDDLEWARE ================= */
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const path = require("path");
+
+/* ================= STATIC ================= */
 
 app.use(express.static(path.join(__dirname)));
-
 app.use("/pages", express.static(path.join(__dirname, "pages")));
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "index.html"));
 });
 
-/* ================= FILE UPLOAD ================= */
+/* ================= UPLOAD SETUP ================= */
+
+const uploadDir = path.join(__dirname, "uploads");
+
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir);
+}
 
 const storage = multer.diskStorage({
-    destination: (_, __, cb) => cb(null, "uploads/"),
+    destination: (_, __, cb) => cb(null, uploadDir),
     filename: (_, file, cb) => cb(null, Date.now() + "-" + file.originalname)
 });
 
@@ -43,7 +52,6 @@ const saveOrders = orders => {
 
 const updateQueue = orders => {
     let queue = 1;
-
     orders.forEach(o => {
         if (o.status === "Pending") {
             o.queuePosition = queue;
@@ -58,7 +66,6 @@ const generateOrderId = () => {
     const prefix = [...Array(4)]
         .map(() => letters[Math.floor(Math.random() * letters.length)])
         .join("");
-
     const numbers = Math.floor(100000 + Math.random() * 900000);
     return prefix + numbers;
 };
@@ -68,21 +75,21 @@ const calculatePrice = (color, copies) =>
 
 /* ================= ROUTES ================= */
 
-/* place order */
 app.post("/place-order", upload.single("file"), (req, res) => {
+
+    if (!req.file) {
+        return res.status(400).json({ error: "File upload failed" });
+    }
 
     const orders = loadOrders();
     const { regno, phone, name, copies, color, payment } = req.body;
 
-    // prevent duplicate pending
     const existing = orders.find(o =>
         o.regNo === regno && o.status === "Pending"
     );
 
     if (existing) {
-        return res.json({
-            error: "You already have a pending order"
-        });
+        return res.json({ error: "You already have a pending order" });
     }
 
     const order = {
@@ -110,27 +117,19 @@ app.post("/place-order", upload.single("file"), (req, res) => {
 /* last order */
 app.get("/last-order/:regno", (req, res) => {
     const orders = loadOrders().filter(o => o.regNo === req.params.regno);
-
-    if (!orders.length) {
-        return res.json({ message: "No previous orders" });
-    }
-
+    if (!orders.length) return res.json({ message: "No previous orders" });
     res.json(orders.at(-1));
 });
 
 /* track */
 app.get("/track/:id", (req, res) => {
     const order = loadOrders().find(o => o.orderId === req.params.id);
-
-    if (!order) {
-        return res.json({ error: "Order not found" });
-    }
-
+    if (!order) return res.json({ error: "Order not found" });
     res.json(order);
 });
 
 /* all orders */
-app.get("/orders", (req, res) => {
+app.get("/orders", (_, res) => {
     res.json(loadOrders());
 });
 
@@ -140,9 +139,7 @@ app.post("/order-ready/:id", (req, res) => {
     const orders = loadOrders();
     const order = orders.find(o => o.orderId === req.params.id);
 
-    if (!order) {
-        return res.json({ error: "Order not found" });
-    }
+    if (!order) return res.json({ error: "Order not found" });
 
     order.status = "Ready for Pickup";
     order.readyTime = new Date().toLocaleTimeString();
@@ -159,10 +156,7 @@ app.post("/order-ready/:id", (req, res) => {
 
     const whatsappLink = `https://wa.me/91${order.phone}?text=${message}`;
 
-    res.json({
-        success: true,
-        whatsappLink
-    });
+    res.json({ success: true, whatsappLink });
 });
 
 /* orders by register */
@@ -173,6 +167,8 @@ app.get("/orders-by-register/:regno", (req, res) => {
 
 /* ================= START ================= */
 
-app.listen(3000, () => {
-    console.log("Server running on http://localhost:3000");
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+    console.log("Server running on port " + PORT);
 });
