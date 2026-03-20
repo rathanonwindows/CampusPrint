@@ -8,9 +8,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(__dirname));
+const path = require("path");
+
+app.use(express.static(path.join(__dirname)));
+
+app.use("/pages", express.static(path.join(__dirname, "pages")));
+
 app.get("/", (req, res) => {
-    res.sendFile(__dirname + "/index.html");
+    res.sendFile(path.join(__dirname, "index.html"));
 });
 
 /* ================= FILE UPLOAD ================= */
