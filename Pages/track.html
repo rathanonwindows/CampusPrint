@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Order</title>
+
+    <link rel="stylesheet" href="../public/css/style.css">
+</head>
+
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="container nav-inner">
+        <div class="logo">CampusPrint</div>
+
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="upload.html">Upload</a></li>
+            <li><a href="help.html">Help</a></li>
+            <li><a href="student-history.html">My Orders</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Form -->
+<section class="section">
+    <div class="container">
+        <div class="form-card">
+
+            <h2>Track Your Order</h2>
+
+            <div class="form-group">
+                <label>Order ID</label>
+                <input id="trackInput" placeholder="Example: ABCD839274">
+            </div>
+
+            <button class="btn-primary" onclick="trackOrder()">
+                Track Order
+            </button>
+            <div class="progress-container">
+
+            <div class="progress-line"></div>
+            <div class="progress-fill" id="progressFill"></div>
+
+            <div class="progress-step active" id="step1">
+                <div class="dot"></div>
+                <p>Order Placed</p>
+            </div>
+
+            <div class="progress-step" id="step2">
+                <div class="dot"></div>
+                <p id="step2Text">Waiting</p>
+            </div>
+
+            <div class="progress-step" id="step3">
+                <div class="dot"></div>
+                <p>Ready for Pickup</p>
+            </div>
+
+        </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- Popup -->
+<div id="trackPopup" class="modal-overlay">
+    <div class="modal">
+        <h3>Order Details</h3>
+
+        <div id="trackingContent"></div>
+
+        <button class="btn-primary" onclick="closeTrack()">OK</button>
+    </div>
+</div>
+
+<script>
+
+const el = id => document.getElementById(id);
+
+// auto fill last order
+window.onload = () => {
+    const saved = localStorage.getItem("lastOrderId");
+    if (saved) el("trackInput").value = saved;
+};
+
+// ================= PROGRESS LOGIC =================
+
+function updateProgress(order) {
+
+    const fill = el("progressFill");
+
+    // reset
+    document.querySelectorAll(".progress-step").forEach(step => {
+        step.classList.remove("active");
+    });
+
+    // STEP 1
+    el("step1").classList.add("active");
+    fill.style.width = "0%";
+
+    // STEP 2
+    if (order.status.toLowerCase().includes("pending")) {
+
+        el("step2").classList.add("active");
+
+        if (order.queuePosition === 1) {
+            el("step2Text").innerText = "Printing";
+        } else {
+            el("step2Text").innerText = "Waiting";
+        }
+
+        fill.style.width = "50%";
+    }
+
+    // STEP 3 (READY FIX 🔥)
+    if (order.status.toLowerCase().includes("ready")) {
+
+        el("step2").classList.add("active");
+        el("step3").classList.add("active");
+
+        el("step2Text").innerText = "Printing";
+        fill.style.width = "100%";
+    }
+}// ================= TRACK FUNCTION =================
+
+async function trackOrder() {
+
+    const id = el("trackInput").value.trim();
+    if (!id) return alert("Enter Order ID");
+
+    const res = await fetch("/track/" + id);
+    const data = await res.json();
+
+    if (data.error) {
+        alert("Order not found");
+        return;
+    }
+
+    // UPDATE PROGRESS 🔥
+    updateProgress(data);
+
+    // POPUP DETAILS
+    el("trackingContent").innerHTML =
+        data.status === "Pending"
+            ? `
+                <p><strong>Status:</strong> Pending</p>
+                <p><strong>Queue:</strong> ${data.queuePosition}</p>
+                <p><strong>Time:</strong> ${data.estimatedTime} mins</p>
+              `
+            : `
+                <p><strong>Status:</strong> Ready for Pickup</p>
+                <p><strong>Ready Time:</strong> ${data.readyTime}</p>
+                <p>Collect from the counter.</p>
+              `;
+
+    el("trackPopup").style.display = "flex";
+}
+
+// close popup
+function closeTrack() {
+    el("trackPopup").style.display = "none";
+}
+
+</script>
+
+</body>
+</html>

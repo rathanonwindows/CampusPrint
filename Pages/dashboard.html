@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+
+    <link rel="stylesheet" href="../public/css/style.css">
+</head>
+
+<body class="admin-page">
+
+<!-- Top Navbar -->
+<nav class="dash-navbar">
+    <div class="dash-container nav-inner">
+        <div class="logo">CampusPrint Admin</div>
+        <a href="../index.html" class="btn-primary">Logout</a>
+    </div>
+</nav>
+
+<div class="layout">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>Dashboard</h2>
+
+        <a id="navDashboard" class="active" onclick="showDashboard()">Overview</a>
+        <a id="navHistory" onclick="showHistory()">Order History</a>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- Dashboard -->
+        <div id="dashboardSection">
+            <h2 class="section-title">Overview</h2>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3 id="pendingCount">0</h3>
+                    <p>Pending</p>
+                </div>
+
+                <div class="stat-card">
+                    <h3 id="completedCount">0</h3>
+                    <p>Completed</p>
+                </div>
+
+                <div class="stat-card">
+                    <h3 id="totalCount">0</h3>
+                    <p>Total</p>
+                </div>
+            </div>
+
+            <h3>Pending Orders</h3>
+            <div id="pendingOrders" class="orders-grid"></div>
+
+            <h3 style="margin-top:20px;">Ready Orders</h3>
+            <div id="readyOrders" class="orders-grid"></div>
+        </div>
+
+        <!-- History -->
+        <div id="historySection" class="hidden">
+            <h2 class="section-title">Order History</h2>
+
+            <div class="search-box">
+                <input id="searchHistory" placeholder="Search by Register Number">
+            </div>
+
+            <div id="historyOrders" class="orders-grid"></div>
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+const el = id => document.getElementById(id);
+
+if (Notification.permission !== "granted") {
+    Notification.requestPermission();
+}
+
+let prevCount = 0;
+
+/* sound */
+function playSound() {
+    new Audio("/public/sounds/notify.mp3").play().catch(()=>{});
+}
+
+/* navigation */
+function setActive(tab) {
+    el("navDashboard").classList.toggle("active", tab === "dashboard");
+    el("navHistory").classList.toggle("active", tab === "history");
+}
+
+function showDashboard() {
+    el("dashboardSection").classList.remove("hidden");
+    el("historySection").classList.add("hidden");
+    setActive("dashboard");
+}
+
+function showHistory() {
+    el("historySection").classList.remove("hidden");
+    el("dashboardSection").classList.add("hidden");
+    setActive("history");
+    loadHistory();
+}
+
+/* load orders */
+async function loadOrders() {
+    const res = await fetch("/orders");
+    const orders = await res.json();
+
+    if (prevCount && orders.length > prevCount) {
+        playSound();
+
+        if (Notification.permission === "granted") {
+            const last = orders.at(-1);
+            new Notification("New Order", {
+                body: last.name + " placed an order"
+            });
+        }
+    }
+
+    prevCount = orders.length;
+
+    el("pendingOrders").innerHTML = "";
+    el("readyOrders").innerHTML = "";
+
+    let pending = 0, completed = 0;
+
+    orders.forEach(order => {
+        const card = createCard(order);
+
+        if (order.status === "Pending") {
+            pending++;
+            el("pendingOrders").appendChild(card);
+        } else {
+            completed++;
+            el("readyOrders").appendChild(card);
+        }
+    });
+
+    el("pendingCount").innerText = pending;
+    el("completedCount").innerText = completed;
+    el("totalCount").innerText = orders.length;
+}
+
+/* history */
+async function loadHistory() {
+    const res = await fetch("/orders");
+    const orders = await res.json();
+
+    const search = el("searchHistory").value.toLowerCase();
+    el("historyOrders").innerHTML = "";
+
+    orders.forEach(order => {
+        if (search && !order.regNo.toLowerCase().includes(search)) return;
+        el("historyOrders").appendChild(createCard(order));
+    });
+}
+
+/* card */
+function createCard(order) {
+    const card = document.createElement("div");
+    card.className = "order-card";
+
+    const statusClass = order.status === "Pending" ? "status-pending" : "status-ready";
+
+   card.innerHTML = `
+    <div class="order-header">
+        <span class="order-id">#${order.orderId}</span>
+        <span class="status-badge ${statusClass}">${order.status}</span>
+    </div>
+
+    <div class="order-divider"></div>
+
+    <div class="order-details">
+        <div class="order-row">
+            <span>Name</span>
+            <span>${order.name}</span>
+        </div>
+
+        <div class="order-row">
+            <span>Register</span>
+            <span>${order.regNo}</span>
+        </div>
+
+        <div class="order-row">
+            <span>Copies</span>
+            <span>${order.copies}</span>
+        </div>
+
+        <div class="order-row">
+            <span>Color</span>
+            <span>${order.color}</span>
+        </div>
+
+        ${order.status === "Ready for Pickup" ? `
+        <div class="order-row">
+            <span>Ready</span>
+            <span>${order.readyTime}</span>
+        </div>
+        ` : ""}
+
+        <div class="order-row">
+            <span>Price</span>
+            <span>₹${order.price}</span>
+        </div>
+    </div>
+
+    <div class="order-actions"></div>
+`;
+
+    const actions = card.querySelector(".order-actions");
+
+    // view button
+    const view = document.createElement("a");
+    view.href = "/uploads/" + order.file;
+    view.target = "_blank";
+    view.className = "download-btn";
+    view.innerText = "Download";
+
+    actions.appendChild(view);
+
+    // ready button
+    if (order.status === "Pending") {
+        const btn = document.createElement("button");
+        btn.className = "btn-primary";
+        btn.innerText = "Ready";
+        btn.onclick = () => markReady(order.orderId);
+        actions.appendChild(btn);
+    }
+
+    return card;
+}
+
+/* mark ready */
+async function markReady(id) {
+    await fetch("/order-ready/" + id, { method: "POST" });
+    loadOrders();
+}
+
+el("searchHistory").addEventListener("input", loadHistory);
+
+loadOrders();
+setInterval(loadOrders, 5000);
+
+</script>
+
+</body>
+</html>

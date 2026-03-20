@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Document</title>
+
+    <link rel="stylesheet" href="../public/css/style.css">
+</head>
+
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container nav-inner">
+            <div class="logo">CampusPrint</div>
+
+            <ul class="nav-links">
+                <li><a href="../index.html">Home</a></li>
+                <li><a href="track.html">Track Order</a></li>
+                <li><a href="help.html">Help</a></li>
+                <li><a href="student-history.html">My Orders</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Form -->
+    <section class="section">
+        <div class="container">
+            <div class="form-card">
+
+                <h2>Upload Your Document</h2>
+
+                <form id="orderForm" enctype="multipart/form-data">
+
+                    <div class="form-group">
+                        <label>Student Name</label>
+                        <input type="text" name="name" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Register Number</label>
+                        <input type="text" name="regno" id="regno" required>
+                    </div>
+
+                    <div id="lastOrderBox"></div>
+
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="text" name="phone" id="phone" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Upload File</label>
+                        <input type="file" name="file" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Print Type</label>
+                        <select name="color" id="color">
+                            <option value="Black & White">Black & White</option>
+                            <option value="Color">Color</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Number of Copies</label>
+                        <input type="number" name="copies" id="copies" value="1" min="1">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Payment Method</label>
+                        <select name="payment" id="payment">
+                            <option value="cash">Cash</option>
+                            <option value="online">Online</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Total Price</label>
+                        <p id="priceDisplay">₹5</p>
+                    </div>
+
+                    <button class="btn-primary" type="submit">Place Order</button>
+
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- QR Popup -->
+    <div id="qrPopup" class="modal-overlay">
+        <div class="modal">
+            <h3>Scan to Pay</h3>
+            <p>Scan using any UPI app</p>
+
+            <div class="qr-code">
+                <img src="../public/images/qr.png" alt="QR Code">
+            </div>
+
+            <p style="text-align:center; margin-bottom:10px;">
+                After payment, click confirm
+            </p>
+
+            <button class="btn-primary" onclick="confirmPayment()">Confirm Payment</button>
+            <button class="btn-cnl" onclick="closeQR()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Order Popup -->
+    <div id="orderPopup" class="modal-overlay">
+    <div class="modal">
+        <h3>Order Placed</h3>
+
+        <div class="order-row">
+            <span>Order ID</span>
+            <span class="value-with-btn">
+                <span id="orderId"></span>
+                <button class="copy-btn" onclick="copyOrderId()">Copy</button>
+            </span>
+            </div>
+
+            <div class="order-row">
+                <span>Queue</span>
+                <span id="queue"></span>
+            </div>
+
+            <div class="order-row">
+                <span>Time</span>
+                <span><span id="time"></span> mins</span>
+            </div>
+
+            <div class="order-row">
+                <span>Price</span>
+                <span class="price">₹<span id="price"></span></span>
+            </div>
+                <button class="btn-primary" onclick="goHome()">Done</button>
+            </div>
+        </div>
+
+    <script>
+
+        const el = id => document.getElementById(id);
+        const form = el("orderForm");
+
+        const phoneRegex = /^[6-9]\d{9}$/;
+        const regRegex = /^MS\d{6}$/;
+
+        let pendingData = null;
+
+        // PRICE
+        function updatePrice() {
+            const copies = +el("copies").value || 0;
+            const isColor = el("color").value === "Color";
+            el("priceDisplay").innerText = "₹" + (copies * (isColor ? 15 : 5));
+        }
+
+        // VALIDATION
+        function validate() {
+            const phone = el("phone").value.trim();
+            const reg = el("regno").value.trim();
+
+            const num = +reg.slice(2);
+            const validReg = regRegex.test(reg) && num >= 244460 && num <= 244520;
+
+            el("phone").classList.toggle("input-error", !phoneRegex.test(phone));
+            el("regno").classList.toggle("input-error", !validReg);
+
+            return phoneRegex.test(phone) && validReg;
+        }
+
+        // SUBMIT
+        form.addEventListener("submit", e => {
+            e.preventDefault();
+
+            if (!validate()) return;
+
+            pendingData = new FormData(form);
+
+            if (el("payment").value === "online") {
+                el("qrPopup").style.display = "flex";   // ✅ FIXED
+            } else {
+                sendOrder();
+            }
+        });
+
+        // SEND ORDER
+        async function sendOrder() {
+            const res = await fetch("/place-order", {
+                method: "POST",
+                body: pendingData
+            });
+
+            const data = await res.json();
+
+            if (data.error) return alert(data.error);
+
+            el("orderId").innerText = data.orderId;
+            el("queue").innerText = data.queuePosition;
+            el("time").innerText = data.estimatedTime;
+            el("price").innerText = data.price;
+
+            el("orderPopup").style.display = "flex";
+            localStorage.setItem("lastOrderId", data.orderId);
+        }
+
+        // PAYMENT FLOW (FIXED)
+        function confirmPayment() {
+            closeQR();
+            sendOrder();
+        }
+
+        function closeQR() {
+            el("qrPopup").style.display = "none";
+        }
+
+        // COPY
+        function copyOrderId() {
+            const id = el("orderId").innerText;
+            navigator.clipboard.writeText(id);
+            localStorage.setItem("lastOrderId", id);
+            alert("Copied!");
+        }
+
+        // LAST ORDER
+        el("regno").addEventListener("blur", async () => {
+            const reg = el("regno").value.trim();
+            if (!reg) return;
+
+            const res = await fetch("/last-order/" + reg);
+            const data = await res.json();
+
+            el("lastOrderBox").innerHTML = data.message
+                ? ""
+                : `<p><strong>Last Order:</strong> ${data.orderId} (${data.status})</p>`;
+        });
+
+        function goHome() {
+            window.location.href = "../index.html";
+        }
+
+        // EVENTS
+        el("color").addEventListener("change", updatePrice);
+        el("copies").addEventListener("input", updatePrice);
+
+        el("phone").addEventListener("input", validate);
+        el("regno").addEventListener("input", validate);
+
+        updatePrice();
+
+    </script>
+
+</body>
+</html>

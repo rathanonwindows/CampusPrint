@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Help</title>
+
+    <link rel="stylesheet" href="../public/css/style.css">
+</head>
+
+<body>
+
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="container nav-inner">
+        <div class="logo">CampusPrint</div>
+
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="track.html">Track Order</a></li>
+            <li><a href="student-history.html">My Orders</a></li>
+        </ul>
+    </div>
+</nav>
+
+<main>
+
+    <section class="section">
+        <div class="container">
+
+            <div class="form-card">
+
+                <h2>Help & Support</h2>
+
+                <!-- FAQ -->
+                <div class="faq-item">
+                    <div class="faq-question">How do I upload documents?</div>
+                    <div class="faq-answer">
+                        Go to the Upload page, select your document and place your order.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How do I track my order?</div>
+                    <div class="faq-answer">
+                        Enter your Order ID on the Track page to see status and queue.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Where do I collect prints?</div>
+                    <div class="faq-answer">
+                        Collect from the stationery shop once it shows "Ready".
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">Payment methods?</div>
+                    <div class="faq-answer">
+                        Cash or QR payment available.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">How long does it take?</div>
+                    <div class="faq-answer">
+                        Depends on queue. Estimated time is shown in the system.
+                    </div>
+                </div>
+
+                <!-- Contact -->
+                <h3 class="contactsupport">Contact Support</h3>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" placeholder="Enter your email">
+                </div>
+
+                <div class="form-group">
+                    <label>Issue</label>
+                    <textarea placeholder="Describe your issue"></textarea>
+                </div>
+
+                <button class="btn-primary">Submit</button>
+
+            </div>
+
+        </div>
+    </section>
+
+</main>
+
+<footer>
+    <p>© 2026 CampusPrint | College Stationery Printing System</p>
+</footer>
+
+<script>
+
+const questions = document.querySelectorAll(".faq-question");
+
+questions.forEach(q => {
+    q.addEventListener("click", () => {
+
+        const answer = q.nextElementSibling;
+
+        // close all others
+        document.querySelectorAll(".faq-answer").forEach(a => {
+            if (a !== answer) a.style.display = "none";
+        });
+
+        // toggle current
+        answer.style.display =
+            answer.style.display === "block" ? "none" : "block";
+    });
+});
+
+</script>
+
+</body>
+</html>

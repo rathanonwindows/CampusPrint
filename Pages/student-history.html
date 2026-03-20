@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders</title>
+
+    <link rel="stylesheet" href="../public/css/style.css">
+</head>
+
+<body class="orders-page">
+
+<!-- Navbar -->
+<nav class="navbar">
+    <div class="container nav-inner">
+        <div class="logo">CampusPrint</div>
+
+        <ul class="nav-links">
+            <li><a href="../index.html">Home</a></li>
+            <li><a href="upload.html">Upload</a></li>
+            <li><a href="track.html">Track</a></li>
+            <li><a href="help.html">Help</a></li>
+        </ul>
+    </div>
+</nav>
+
+<!-- Section -->
+<section class="section">
+    <div class="container">
+
+        <div class="form-card">
+
+            <h2>My Orders</h2>
+
+            <div class="form-group">
+                <label>Register Number</label>
+                <input id="studentReg" placeholder="Enter Register Number">
+            </div>
+
+            <button class="btn-primary" onclick="loadOrders()">
+                View Orders
+            </button>
+
+        </div>
+
+        <div id="studentOrders" class="orders-grid" style="margin-top:30px;"></div>
+
+    </div>
+</section>
+
+<script>
+
+const el = id => document.getElementById(id);
+
+// load orders
+async function loadOrders() {
+
+    const reg = el("studentReg").value.trim();
+    if (!reg) return alert("Enter register number");
+
+    const res = await fetch("/orders-by-register/" + reg);
+    const data = await res.json();
+
+    const container = el("studentOrders");
+    container.innerHTML = "";
+
+    if (!data.length) {
+        container.innerHTML = "<p>No orders found</p>";
+        return;
+    }
+
+    data.forEach(order => {
+
+        const card = document.createElement("div");
+        card.className = "order-card";
+
+        card.innerHTML = `
+            <p><strong>ID:</strong> ${order.orderId}</p>
+            <p><strong>Status:</strong> ${order.status}</p>
+            <p><strong>Price:</strong> ₹${order.price}</p>
+            <p><strong>Date:</strong> ${order.date}</p>
+        `;
+
+        container.appendChild(card);
+
+    });
+}
+
+</script>
+
+</body>
+</html>
