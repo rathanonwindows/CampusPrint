@@ -239,7 +239,14 @@ function createCard(order) {
 
 /* mark ready */
 async function markReady(id) {
-    await fetch("/order-ready/" + id, { method: "POST" });
+    const res = await fetch("/order-ready/" + id, { method: "POST" });
+    const data = await res.json();
+
+    // open whatsapp
+    if (data.whatsappLink) {
+        window.open(data.whatsappLink, "_blank");
+    }
+
     loadOrders();
 }
 
